@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>2D RPG Fullscreen</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      let x = 200, y = 300;
+      let vy = 0;
+      let gravity = 0.6;
+      let onGround = true;
+
+      let speed = 3;
+      let dash = false;
+      let dashTimer = 0;
+
+      let heroImg, bgImg;
+
+      function preload() {
+        heroImg = loadImage("hoshino_base.png");
+        bgImg = loadImage("abydos.jpg");
+      }
+
+      function setup() {
+        createCanvas(windowWidth, windowHeight);
+      }
+
+      function draw() {
+        image(bgImg, 0, 0, width, height);
+
+        fill(100, 200, 100, 150);
+        rect(0, height - 100, width, 100);
+
+        image(heroImg, x, y, 60, 75);
+
+        let moveSpeed = dash ? 8 : speed;
+        if (keyIsDown(LEFT_ARROW)) x -= moveSpeed;
+        if (keyIsDown(RIGHT_ARROW)) x += moveSpeed;
+
+        y += vy;
+        vy += gravity;
+
+        if (y >= height - 100 - 75) {
+          y = height - 100 - 75;
+          vy = 0;
+          onGround = true;
+        }
+
+        if (dashTimer > 0) {
+          dashTimer--;
+        } else {
+          dash = false;
+        }
+      }
+
+      function keyPressed() {
+        if (key === " " && onGround) {
+          vy = -15;
+          onGround = false;
+        }
+
+        if (key === "f" || key === "F") {
+          dash = true;
+          dashTimer = 15;
+        }
+      }
+
+      function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+      }
+    </script>
+  </body>
+</html>
