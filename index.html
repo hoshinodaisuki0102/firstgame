@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>2D RPG Fullscreen</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      let x = 200, y = 300;
+      let vy = 0;
+      let gravity = 0.6;
+      let onGround = true;
+
+      let speed = 4;
+      let dash = false;
+      let dashTimer = 0;
+
+      let heroImg, bgImg;
+
+      function preload() {
+        heroImg = loadImage("hoshino_base.png"); // 캐릭터
+        bgImg = loadImage("abydos.jpg");         // 배경
+      }
+
+      function setup() {
+        createCanvas(windowWidth, windowHeight);
+      }
+
+      function draw() {
+        // 배경 타일링 (화질 깨짐 방지)
+        for (let i = 0; i < width; i += bgImg.width) {
+          for (let j = 0; j < height; j += bgImg.height) {
+            image(bgImg, i, j);
+          }
+        }
+
+        // 캐릭터 출력 (크게)
+        let heroW = heroImg.width * 2;  // 2배 확대
+        let heroH = heroImg.height * 2;
+        image(heroImg, x, y, heroW, heroH);
+
+        // 이동 속도
+        let moveSpeed = dash ? 8 : speed;
+
+        // 좌우 이동 (화살표 + WASD)
+        if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) x -= moveSpeed; // ←, A
+        if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) x += moveSpeed; // →, D
+
+        // 점프 (중력 적용)
+        y += vy;
+        vy += gravity;
+
+        if (y >= height - heroH - 50) {
+          y = height - heroH - 50;
+          vy = 0;
+          onGround = true;
+        }
+
+        // 대쉬 타이머
+        if (dashTimer > 0) dashTimer--;
+        else dash = false;
+      }
+
+      function keyPressed() {
+        // 점프 (스페이스 또는 W)
+        if ((key === " " || key === "w" || key === "W") && onGround) {
+          vy = -15;
+          onGround = false;
+        }
+
+        // 대쉬 (F)
+        if (key === "f" || key === "F") {
+          dash = true;
+          dashTimer = 15;
+        }
+      }
+
+      function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+      }
+    </script>
+  </body>
+</html>
