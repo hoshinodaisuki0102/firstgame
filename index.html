@@ -1,82 +1,82 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>2D RPG Fullscreen</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-      }
-    </style>
-  </head>
-  <body>
-    <script>
-      let x = 200, y = 300;
-      let vy = 0;
-      let gravity = 0.6;
-      let onGround = true;
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>2D RPG 기본틀</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      background: url("abydos.jpg") no-repeat center center;
+      background-size: cover; /* 배경 화질 깨짐 방지 */
+    }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
 
-      let speed = 4;
-      let dash = false;
-      let dashTimer = 0;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
-      let heroImg, bgImg;
+  // 캐릭터 이미지 불러오기
+  const playerImg = new Image();
+  playerImg.src = "hoshino_base.png";
 
-      function preload() {
-        heroImg = loadImage("hoshino_base.png")
-        bgImg = loadImage("abydos.jpg");
-      }
+  const player = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    width: 64,   // 크기 키우기
+    height: 64,
+    speed: 5,
+    dx: 0,
+    dy: 0
+  };
 
-      function setup() {
-        createCanvas(windowWidth, windowHeight);
-        imageMode(CENTER);
-      }
+  const keys = {};
 
-      function draw() {
-        let scaleFactor = max(width / bgImg.width, height / bgImg.height);
-        let newW = bgImg.width * scaleFactor;
-        let newH = bgImg.height * scaleFactor;
-        image(bgImg, width / 2, height / 2, newW, newH);
+  document.addEventListener("keydown", (e) => {
+    keys[e.key.toLowerCase()] = true;
+  });
 
-        let heroW = heroImg.width * 2.5;
-        let heroH = heroImg.height * 2.5;
-        image(heroImg, x, y, heroW, heroH);
+  document.addEventListener("keyup", (e) => {
+    keys[e.key.toLowerCase()] = false;
+  });
 
-        let moveSpeed = dash ? 8 : speed;
-        if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) x -= moveSpeed; // ←, A
-        if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) x += moveSpeed; // →, D
+  function movePlayer() {
+    player.dx = 0;
+    player.dy = 0;
 
-        y += vy;
-        vy += gravity;
+    if (keys["arrowup"] || keys["w"]) player.dy = -player.speed;
+    if (keys["arrowdown"] || keys["s"]) player.dy = player.speed;
+    if (keys["arrowleft"] || keys["a"]) player.dx = -player.speed;
+    if (keys["arrowright"] || keys["d"]) player.dx = player.speed;
 
-        if (y >= height - heroH / 2 - 50) {
-          y = height - heroH / 2 - 50;
-          vy = 0;
-          onGround = true;
-        }
+    player.x += player.dx;
+    player.y += player.dy;
+  }
 
-        if (dashTimer > 0) dashTimer--;
-        else dash = false;
-      }
+  function drawPlayer() {
+    ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+  }
 
-      function keyPressed() {
-        if ((key === " " || key === "w" || key === "W") && onGround) {
-          vy = -15;
-          onGround = false;
-        }
+  function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    movePlayer();
+    drawPlayer();
+    requestAnimationFrame(update);
+  }
 
-        // 대쉬 (F)
-        if (key === "f" || key === "F") {
-          dash = true;
-          dashTimer = 15;
-        }
-      }
-
-      function windowResized() {
-        resizeCanvas(windowWidth, windowHeight);
-      }
-    </script>
-  </body>
+  playerImg.onload = () => {
+    update();
+  };
+</script>
+</body>
 </html>
