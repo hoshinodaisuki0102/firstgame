@@ -25,35 +25,34 @@
       let heroImg, bgImg;
 
       function preload() {
-        heroImg = loadImage("hoshino_base.png");
+        heroImg = loadImage("hoshino_base.png")
         bgImg = loadImage("abydos.jpg");
       }
 
       function setup() {
         createCanvas(windowWidth, windowHeight);
+        imageMode(CENTER);
       }
 
       function draw() {
-        for (let i = 0; i < width; i += bgImg.width) {
-          for (let j = 0; j < height; j += bgImg.height) {
-            image(bgImg, i, j);
-          }
-        }
+        let scaleFactor = max(width / bgImg.width, height / bgImg.height);
+        let newW = bgImg.width * scaleFactor;
+        let newH = bgImg.height * scaleFactor;
+        image(bgImg, width / 2, height / 2, newW, newH);
 
-        let heroW = heroImg.width * 2;
-        let heroH = heroImg.height * 2;
+        let heroW = heroImg.width * 2.5;
+        let heroH = heroImg.height * 2.5;
         image(heroImg, x, y, heroW, heroH);
 
         let moveSpeed = dash ? 8 : speed;
-
         if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) x -= moveSpeed; // ←, A
         if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) x += moveSpeed; // →, D
 
         y += vy;
         vy += gravity;
 
-        if (y >= height - heroH - 50) {
-          y = height - heroH - 50;
+        if (y >= height - heroH / 2 - 50) {
+          y = height - heroH / 2 - 50;
           vy = 0;
           onGround = true;
         }
@@ -68,6 +67,7 @@
           onGround = false;
         }
 
+        // 대쉬 (F)
         if (key === "f" || key === "F") {
           dash = true;
           dashTimer = 15;
@@ -79,5 +79,4 @@
       }
     </script>
   </body>
-
 </html>
