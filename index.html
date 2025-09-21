@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>HOSHINO_DAISUKI</title>
+  <title>2D RPG Platformer</title>
   <style>
     body {
       margin: 0;
@@ -15,10 +15,48 @@
       background: url("abydos.jpg") no-repeat center center;
       background-size: cover;
     }
+    /* 모바일 조이스틱 버튼 스타일 */
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.4);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      user-select: none;
+    }
+    .right-controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
+
+<!-- 모바일 컨트롤러 -->
+<div class="controls">
+  <div class="btn" id="left">◀</div>
+  <div class="btn" id="right">▶</div>
+</div>
+<div class="right-controls">
+  <div class="btn" id="jump">⭡</div>
+  <div class="btn" id="dash">⚡</div>
+</div>
+
 <script>
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
@@ -30,18 +68,19 @@
   const playerImg = new Image();
   playerImg.src = "hoshino_base.png";
 
-  const gravity = 0.5;
+  // 물리 변수 (점프 오래 유지)
+  const gravity = 0.4;
   const groundHeight = 100;
 
   const player = {
     x: 200,
     y: canvas.height - groundHeight - 96,
-    width: 96,   // 캐릭터 크기 ↑
+    width: 96,
     height: 96,
     dx: 0,
     dy: 0,
-    speed: 3,    // 속도 ↓
-    jumpPower: -12,
+    speed: 3,
+    jumpPower: -15, // 점프 ↑
     isOnGround: false,
     canDash: true,
     dashing: false
@@ -51,7 +90,7 @@
   let lastDashTime = 0;
   const dashCooldown = 10000; // 10초 (밀리초)
 
-  // 여러 개 블럭/타일
+  // 블럭 배열
   const blocks = [
     {x: 400, y: canvas.height - groundHeight - 50, width: 120, height: 50},
     {x: 600, y: canvas.height - groundHeight - 150, width: 100, height: 20},
@@ -60,6 +99,7 @@
     {x: 1350, y: canvas.height - groundHeight - 200, width: 100, height: 25}
   ];
 
+  // 키보드 이벤트
   document.addEventListener("keydown", (e) => {
     keys[e.key.toLowerCase()] = true;
   });
@@ -68,7 +108,6 @@
   });
 
   function movePlayer() {
-    // 좌우 이동
     if (keys["arrowleft"] || keys["a"]) player.dx = -player.speed;
     else if (keys["arrowright"] || keys["d"]) player.dx = player.speed;
     else player.dx = 0;
@@ -81,13 +120,17 @@
 
     // 대쉬
     if (keys["f"] && player.canDash) {
-      player.dashing = true;
-      player.canDash = false;
-      lastDashTime = Date.now();
-      setTimeout(() => {
-        player.dashing = false;
-      }, 200); // 대쉬 지속 0.2초
+      doDash();
     }
+  }
+
+  function doDash() {
+    player.dashing = true;
+    player.canDash = false;
+    lastDashTime = Date.now();
+    setTimeout(() => {
+      player.dashing = false;
+    }, 200);
   }
 
   function applyPhysics() {
@@ -110,7 +153,6 @@
         player.y < block.y + block.height &&
         player.y + player.height > block.y
       ) {
-        // 위에서 착지
         if (player.dy > 0 && player.y + player.height - player.dy <= block.y) {
           player.y = block.y - player.height;
           player.dy = 0;
@@ -127,9 +169,7 @@
 
   function drawBlocks() {
     ctx.fillStyle = "brown";
-    blocks.forEach(block => {
-      ctx.fillRect(block.x, block.y, block.width, block.height);
-    });
+    blocks.forEach(block => ctx.fillRect(block.x, block.y, block.width, block.height));
   }
 
   function drawPlayer() {
@@ -145,6 +185,11 @@
 
     ctx.fillStyle = "cyan";
     ctx.fillRect(20, canvas.height - 40, 200 * ratio, 20);
+
+    // 텍스트 추가
+    ctx.fillStyle = "black";
+    ctx.font = "16px Arial";
+    ctx.fillText("DASH (F)", 30, canvas.height - 25);
 
     if (ratio >= 1) {
       player.canDash = true;
@@ -168,7 +213,26 @@
   playerImg.onload = () => {
     update();
   };
+
+  // 모바일 컨트롤 (터치 이벤트)
+  const btnLeft = document.getElementById("left");
+  const btnRight = document.getElementById("right");
+  const btnJump = document.getElementById("jump");
+  const btnDash = document.getElementById("dash");
+
+  btnLeft.addEventListener("touchstart", () => keys["a"] = true);
+  btnLeft.addEventListener("touchend", () => keys["a"] = false);
+  btnRight.addEventListener("touchstart", () => keys["d"] = true);
+  btnRight.addEventListener("touchend", () => keys["d"] = false);
+  btnJump.addEventListener("touchstart", () => {
+    if (player.isOnGround) {
+      player.dy = player.jumpPower;
+      player.isOnGround = false;
+    }
+  });
+  btnDash.addEventListener("touchstart", () => {
+    if (player.canDash) doDash();
+  });
 </script>
 </body>
 </html>
-
