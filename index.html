@@ -35,12 +35,12 @@
 
   const player = {
     x: 200,
-    y: canvas.height - groundHeight - 64,
-    width: 64,
-    height: 64,
+    y: canvas.height - groundHeight - 96,
+    width: 96,   // 캐릭터 크기 ↑
+    height: 96,
     dx: 0,
     dy: 0,
-    speed: 5,
+    speed: 3,    // 속도 ↓
     jumpPower: -12,
     isOnGround: false,
     canDash: true,
@@ -51,10 +51,13 @@
   let lastDashTime = 0;
   const dashCooldown = 10000; // 10초 (밀리초)
 
-  // 블럭 예시
+  // 여러 개 블럭/타일
   const blocks = [
-    {x: 400, y: canvas.height - groundHeight - 50, width: 100, height: 50},
-    {x: 600, y: canvas.height - groundHeight - 150, width: 100, height: 20}
+    {x: 400, y: canvas.height - groundHeight - 50, width: 120, height: 50},
+    {x: 600, y: canvas.height - groundHeight - 150, width: 100, height: 20},
+    {x: 800, y: canvas.height - groundHeight - 250, width: 150, height: 30},
+    {x: 1100, y: canvas.height - groundHeight - 100, width: 120, height: 40},
+    {x: 1350, y: canvas.height - groundHeight - 200, width: 100, height: 25}
   ];
 
   document.addEventListener("keydown", (e) => {
@@ -83,7 +86,7 @@
       lastDashTime = Date.now();
       setTimeout(() => {
         player.dashing = false;
-      }, 200); // 대쉬 지속 시간 0.2초
+      }, 200); // 대쉬 지속 0.2초
     }
   }
 
@@ -107,7 +110,7 @@
         player.y < block.y + block.height &&
         player.y + player.height > block.y
       ) {
-        // 위에서 충돌
+        // 위에서 착지
         if (player.dy > 0 && player.y + player.height - player.dy <= block.y) {
           player.y = block.y - player.height;
           player.dy = 0;
