@@ -5,9 +5,9 @@ canvas.width = 800;
 canvas.height = 450;
 
 let keys = {};
-let gravity = 0.2;
+let gravity = 0.1;
 let speed = 2;
-let jumpPower = -7;
+let jumpPower = -8;
 let grounded = false;
 
 let dashReady = true;
@@ -72,8 +72,8 @@ document.getElementById("dashBtn").addEventListener("touchstart", () => {
 
 // 대쉬 함수
 function dash() {
-  if (keys["ArrowRight"]) dashVelocity = 12;
-  else if (keys["ArrowLeft"]) dashVelocity = -12;
+  if (keys["ArrowRight"]) dashVelocity = 30;
+  else if (keys["ArrowLeft"]) dashVelocity = -30;
   else dashVelocity = (player.frame % 2 === 0 ? 6 : -6); // 정지시 임시 방향
 
   dashDuration = 12; // 0.2초 정도
@@ -166,4 +166,5 @@ function gameLoop() {
 }
 
 gameLoop();
+
 
