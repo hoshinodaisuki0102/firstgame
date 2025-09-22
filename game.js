@@ -1,155 +1,154 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
 
-// 배경
-const bgImg = new Image();
-bgImg.src = "abydos.jpg";
+canvas.width = 800;
+canvas.height = 450;
 
-// 캐릭터 프레임 로드
-const frames = [new Image(), new Image(), new Image(), new Image()];
-frames[0].src = "hoshino_move1.png"; // 기본
-frames[1].src = "hoshino_move2.png";
-frames[2].src = "hoshino_move3.png";
-frames[3].src = "hoshino_move4.png";
+let keys = {};
+let gravity = 0.3;       // 중력 조금 줄임
+let speed = 2.5;         // 이동속도 감소
+let jumpPower = -7;      // 점프 높이는 그대로
+let grounded = false;
+let canDoubleJump = true;
+let doubleJumpReady = true;
+let dashReady = true;
 
-// 플레이어
-let player = {
-  x: 200, y: 0,
-  width: 80, height: 80,
-  vx: 0, vy: 0,
-  speed: 2.5,       // 이동속도 ↓ (원래 4)
-  jumping: false,
-  canDoubleJump: true,
+let dashCooldown = 5;     // 초
+let doubleJumpCooldown = 15;
+
+let dashTimer = 0;
+let doubleJumpTimer = 0;
+
+const player = {
+  x: 100,
+  y: 300,
+  width: 48,
+  height: 48,
+  dx: 0,
+  dy: 0,
   frame: 0,
+  tick: 0,
   moving: false
 };
 
-// 애니메이션
-const animOrder = [0, 1, 2, 0, 1, 3];
-let animIndex = 0, animTimer = 0;
-const animSpeed = 150;
+// 캐릭터 이미지
+const moveFrames = [
+  "hoshino_move1.png",
+  "hoshino_move2.png",
+  "hoshino_move3.png",
+  "hoshino_move4.png"
+].map(src => {
+  const img = new Image();
+  img.src = src;
+  return img;
+});
 
-// 물리
-const gravity = 0.45; // ↓ 중력 낮춤 (체공 ↑)
-const groundLevel = canvas.height - 120;
+const idleImg = moveFrames[0];
 
-// 입력
-let keys = {};
+// 키 입력
+document.addEventListener("keydown", e => {
+  keys[e.code] = true;
+  if (e.code === "KeyF" && dashReady) dash();
+});
+document.addEventListener("keyup", e => keys[e.code] = false);
 
-// 대쉬 쿨타임
-let dashCooldown = 10000, lastDashTime = -dashCooldown, dashReady = true;
-const dashBar = document.getElementById("dashBar");
-const dashText = document.getElementById("dashText");
+// 모바일 버튼
+document.getElementById("leftBtn").addEventListener("touchstart", () => keys["ArrowLeft"] = true);
+document.getElementById("leftBtn").addEventListener("touchend", () => keys["ArrowLeft"] = false);
+document.getElementById("rightBtn").addEventListener("touchstart", () => keys["ArrowRight"] = true);
+document.getElementById("rightBtn").addEventListener("touchend", () => keys["ArrowRight"] = false);
+document.getElementById("jumpBtn").addEventListener("touchstart", () => keys["Space"] = true);
+document.getElementById("jumpBtn").addEventListener("touchend", () => keys["Space"] = false);
+document.getElementById("dashBtn").addEventListener("touchstart", () => {
+  if (dashReady) dash();
+});
 
-// 더블 점프 쿨타임
-let jumpCooldown = 15000, lastJumpTime = -jumpCooldown, jumpReady = true;
-const jumpBar = document.getElementById("jumpBar");
-const jumpText = document.getElementById("jumpText");
+// 대쉬 함수
+function dash() {
+  player.dx = (keys["ArrowRight"] ? 6 : keys["ArrowLeft"] ? -6 : 0);
+  dashReady = false;
+  dashTimer = dashCooldown;
+}
 
-function updateCooldown(bar, text, lastTime, cooldown, label) {
-  const now = Date.now();
-  const elapsed = now - lastTime;
-  if (elapsed >= cooldown) {
-    bar.style.width = "100%";
-    text.innerText = `${label} READY`;
-    return true;
-  } else {
-    const remaining = Math.ceil((cooldown - elapsed) / 1000);
-    const percent = (elapsed / cooldown) * 100;
-    bar.style.width = percent + "%";
-    text.innerText = `${label} (${remaining}s)`;
-    return false;
+// 점프 함수 (홀드 발동)
+function handleJump() {
+  if (keys["Space"]) {
+    if (grounded) {
+      player.dy = jumpPower;
+      grounded = false;
+      canDoubleJump = true;
+    } else if (canDoubleJump && doubleJumpReady) {
+      player.dy = jumpPower * 1.2;
+      canDoubleJump = false;
+      doubleJumpReady = false;
+      doubleJumpTimer = doubleJumpCooldown;
+    }
   }
 }
 
-function handleInput() {
+// UI 업데이트
+function updateCooldownUI() {
+  const dashBar = document.getElementById("dashCooldown");
+  const dashText = document.getElementById("dashText");
+  dashBar.style.width = (dashReady ? "100%" : `${(dashTimer / dashCooldown) * 100}%`);
+  dashText.textContent = `DASH (F) ${dashReady ? "0s" : dashTimer.toFixed(1) + "s"}`;
+
+  const jumpBar = document.getElementById("doubleJumpCooldown");
+  const jumpText = document.getElementById("jumpText");
+  jumpBar.style.width = (doubleJumpReady ? "100%" : `${(doubleJumpTimer / doubleJumpCooldown) * 100}%`);
+  jumpText.textContent = `DOUBLE JUMP (SPACE) ${doubleJumpReady ? "0s" : doubleJumpTimer.toFixed(1) + "s"}`;
+}
+
+// 메인 루프
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 이동
+  player.dx = 0;
   player.moving = false;
+  if (keys["ArrowLeft"]) { player.dx = -speed; player.moving = true; }
+  if (keys["ArrowRight"]) { player.dx = speed; player.moving = true; }
 
-  if (keys["ArrowLeft"] || keys["a"]) {
-    player.vx = -player.speed;
-    player.moving = true;
-  } else if (keys["ArrowRight"] || keys["d"]) {
-    player.vx = player.speed;
-    player.moving = true;
-  } else {
-    player.vx = 0;
-  }
+  // 점프 처리
+  handleJump();
 
-  // 점프
-  if ((keys["ArrowUp"] || keys["w"] || keys[" "]) && !player.jumping) {
-    player.vy = -12;
-    player.jumping = true;
-    player.canDoubleJump = true;
-  }
+  // 물리
+  player.dy += gravity;
+  player.x += player.dx;
+  player.y += player.dy;
 
-  // 더블 점프
-  if ((keys["ArrowUp"] || keys["w"] || keys[" "]) && player.jumping && player.canDoubleJump && jumpReady) {
-    player.vy = -12;
-    player.canDoubleJump = false;
-    lastJumpTime = Date.now();
-  }
-
-  // 대쉬
-  if (keys["f"] && dashReady) {
-    player.vx *= 3;
-    lastDashTime = Date.now();
-  }
-}
-
-function updatePlayer(deltaTime) {
-  handleInput();
-
-  // 중력
-  player.vy += gravity;
-  player.x += player.vx;
-  player.y += player.vy;
-
-  // 바닥 충돌
-  if (player.y + player.height > groundLevel) {
-    player.y = groundLevel - player.height;
-    player.vy = 0;
-    player.jumping = false;
+  // 땅 충돌
+  if (player.y + player.height >= canvas.height - 20) {
+    player.y = canvas.height - 20 - player.height;
+    player.dy = 0;
+    grounded = true;
   }
 
   // 애니메이션
   if (player.moving) {
-    animTimer += deltaTime;
-    if (animTimer > animSpeed) {
-      animTimer = 0;
-      animIndex = (animIndex + 1) % animOrder.length;
-      player.frame = animOrder[animIndex];
+    player.tick++;
+    if (player.tick > 8) {
+      player.frame = (player.frame + 1) % 4;
+      player.tick = 0;
     }
+    ctx.drawImage(moveFrames[player.frame], player.x, player.y, player.width, player.height);
   } else {
-    player.frame = 0;
-    animIndex = 0;
+    ctx.drawImage(idleImg, player.x, player.y, player.width, player.height);
   }
-}
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-  ctx.drawImage(frames[player.frame], player.x, player.y, player.width, player.height);
-}
+  // 쿨타임 감소
+  if (!dashReady) {
+    dashTimer -= 0.016;
+    if (dashTimer <= 0) dashReady = true;
+  }
+  if (!doubleJumpReady) {
+    doubleJumpTimer -= 0.016;
+    if (doubleJumpTimer <= 0) doubleJumpReady = true;
+  }
 
-let lastTime = 0;
-function gameLoop(timestamp) {
-  const deltaTime = timestamp - lastTime;
-  lastTime = timestamp;
-
-  updatePlayer(deltaTime);
-
-  // UI 업데이트
-  dashReady = updateCooldown(dashBar, dashText, lastDashTime, dashCooldown, "DASH");
-  jumpReady = updateCooldown(jumpBar, jumpText, lastJumpTime, jumpCooldown, "DOUBLE JUMP");
-
-  draw();
+  updateCooldownUI();
   requestAnimationFrame(gameLoop);
 }
 
-// 입력
-window.addEventListener("keydown", e => keys[e.key] = true);
-window.addEventListener("keyup", e => keys[e.key] = false);
-
 gameLoop();
+
