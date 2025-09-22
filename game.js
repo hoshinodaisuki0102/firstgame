@@ -5,9 +5,9 @@ canvas.width = 800;
 canvas.height = 450;
 
 let keys = {};
-let gravity = 0.3;       // 중력 조금 줄임
-let speed = 2.5;         // 이동속도 감소
-let jumpPower = -7;      // 점프 높이는 그대로
+let gravity = 0.2;
+let speed = 2;
+let jumpPower = -7;
 let grounded = false;
 let canDoubleJump = true;
 let doubleJumpReady = true;
@@ -151,4 +151,5 @@ function gameLoop() {
 }
 
 gameLoop();
+
 
