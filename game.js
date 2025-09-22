@@ -72,8 +72,8 @@ document.getElementById("dashBtn").addEventListener("touchstart", () => {
 
 // 대쉬 함수
 function dash() {
-  if (keys["ArrowRight"]) dashVelocity = 3000;
-  else if (keys["ArrowLeft"]) dashVelocity = -30;
+  if (keys["ArrowRight"]) dashVelocity = 20;
+  else if (keys["ArrowLeft"]) dashVelocity = -20;
   else dashVelocity = (player.frame % 2 === 0 ? 6 : -6); // 정지시 임시 방향
 
   dashDuration = 12; // 0.2초 정도
@@ -166,6 +166,7 @@ function gameLoop() {
 }
 
 gameLoop();
+
 
 
 
