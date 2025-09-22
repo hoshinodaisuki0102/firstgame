@@ -2,30 +2,26 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>hoshino Game</title>
+  <title>2D RPG Demo</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
 
-  <div class="ui">
-    <div class="cooldown-container">
-      <div id="dashCooldown" class="cooldown-bar"></div>
-      <span id="dashText">DASH (F) 0s</span>
+  <!-- UI -->
+  <div id="ui">
+    <!-- Dash -->
+    <div class="cooldownContainer">
+      <div id="dashBar" class="cooldownBar red"></div>
+      <span id="dashText">DASH READY</span>
     </div>
-    <div class="cooldown-container blue">
-      <div id="doubleJumpCooldown" class="cooldown-bar"></div>
-      <span id="jumpText">DOUBLE JUMP (SPACE) 0s</span>
+    <!-- Double Jump -->
+    <div class="cooldownContainer">
+      <div id="jumpBar" class="cooldownBar blue"></div>
+      <span id="jumpText">DOUBLE JUMP READY</span>
     </div>
   </div>
 
-  <div id="mobileControls">
-    <button id="leftBtn">◀</button>
-    <button id="rightBtn">▶</button>
-    <button id="jumpBtn">⭡</button>
-    <button id="dashBtn">⚡</button>
-  </div>
-
-  <script src="script.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
