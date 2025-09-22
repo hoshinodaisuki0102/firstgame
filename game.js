@@ -1,8 +1,18 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-canvas.width = 800;
-canvas.height = 450;
+// 배경
+const bgImg = new Image();
+bgImg.src = "abydos.jpg";
+
+// 캐릭터 프레임 로드
+const frames = [new Image(), new Image(), new Image(), new Image()];
+frames[0].src = "hoshino_move1.png"; // 기본
+frames[1].src = "hoshino_move2.png";
+frames[2].src = "hoshino_move3.png";
+frames[3].src = "hoshino_move4.png";
 
 let keys = {};
 let gravity = 0.3;
@@ -166,3 +176,4 @@ function gameLoop() {
 }
 
 gameLoop();
+
