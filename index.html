@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>2D RPG Demo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- UI -->
+  <div id="ui">
+    <!-- Dash -->
+    <div class="cooldownContainer">
+      <div id="dashBar" class="cooldownBar red"></div>
+      <span id="dashText">DASH READY</span>
+    </div>
+    <!-- Double Jump -->
+    <div class="cooldownContainer">
+      <div id="jumpBar" class="cooldownBar blue"></div>
+      <span id="jumpText">DOUBLE JUMP READY</span>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
