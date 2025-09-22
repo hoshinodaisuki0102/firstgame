@@ -1,238 +1,188 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>2D RPG Platformer</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-    }
-    canvas {
-      display: block;
-      width: 100vw;
-      height: 100vh;
-      background: url("abydos.jpg") no-repeat center center;
-      background-size: cover;
-    }
-    /* 모바일 조이스틱 버튼 스타일 */
-    .controls {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      display: flex;
-      gap: 10px;
-    }
-    .btn {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: rgba(0,0,0,0.4);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      user-select: none;
-    }
-    .right-controls {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      display: flex;
-      gap: 10px;
-    }
-  </style>
-</head>
-<body>
 <canvas id="gameCanvas"></canvas>
+<div id="ui">
+  <div class="dashContainer">
+    <div id="dashBar"></div>
+    <span id="dashText">DASH READY</span>
+  </div>
+</div>
 
-<!-- 모바일 컨트롤러 -->
-<div class="controls">
-  <div class="btn" id="left">◀</div>
-  <div class="btn" id="right">▶</div>
-</div>
-<div class="right-controls">
-  <div class="btn" id="jump">⭡</div>
-  <div class="btn" id="dash">⚡</div>
-</div>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: black;
+  }
+  #gameCanvas {
+    display: block;
+  }
+  #ui {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-family: "Press Start 2P", monospace;
+  }
+  .dashContainer {
+    position: relative;
+    width: 200px;
+    height: 25px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid white;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  #dashBar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #ff4444, #ff8888);
+    width: 100%;
+    transition: width 0.2s linear;
+  }
+  #dashText {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    text-shadow: 1px 1px 2px black;
+  }
+</style>
 
 <script>
-  const canvas = document.getElementById("gameCanvas");
-  const ctx = canvas.getContext("2d");
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+const bgImg = new Image();
+bgImg.src = "abydos.jpg";
 
-  // 캐릭터 이미지
-  const playerImg = new Image();
-  playerImg.src = "hoshino_base.png";
+const frames = [
+  new Image(),
+  new Image(),
+  new Image(),
+  new Image()
+];
+frames[0].src = "hoshino_move1.png";
+frames[1].src = "hoshino_move2.png";
+frames[2].src = "hoshino_move3.png";
+frames[3].src = "hoshino_move4.png";
 
-  // 물리 변수 (점프 오래 유지)
-  const gravity = 0.4;
-  const groundHeight = 100;
+let player = {
+  x: 200, y: 0,
+  width: 80, height: 80,
+  vx: 0, vy: 0,
+  speed: 4,
+  jumping: false,
+  frame: 0,
+  moving: false
+};
 
-  const player = {
-    x: 200,
-    y: canvas.height - groundHeight - 96,
-    width: 96,
-    height: 96,
-    dx: 0,
-    dy: 0,
-    speed: 3,
-    jumpPower: -15, // 점프 ↑
-    isOnGround: false,
-    canDash: true,
-    dashing: false
-  };
+const animOrder = [0, 1, 2, 0, 1, 3]; 
+let animIndex = 0;
+let animTimer = 0;
+const animSpeed = 150;
 
-  const keys = {};
-  let lastDashTime = 0;
-  const dashCooldown = 10000; // 10초 (밀리초)
+const gravity = 0.6;
+const groundLevel = canvas.height - 120;
 
-  // 블럭 배열
-  const blocks = [
-    {x: 400, y: canvas.height - groundHeight - 50, width: 120, height: 50},
-    {x: 600, y: canvas.height - groundHeight - 150, width: 100, height: 20},
-    {x: 800, y: canvas.height - groundHeight - 250, width: 150, height: 30},
-    {x: 1100, y: canvas.height - groundHeight - 100, width: 120, height: 40},
-    {x: 1350, y: canvas.height - groundHeight - 200, width: 100, height: 25}
-  ];
+let keys = {};
 
-  // 키보드 이벤트
-  document.addEventListener("keydown", (e) => {
-    keys[e.key.toLowerCase()] = true;
-  });
-  document.addEventListener("keyup", (e) => {
-    keys[e.key.toLowerCase()] = false;
-  });
+let dashCooldown = 10000; // 10초
+let lastDashTime = -dashCooldown; 
+let dashReady = true;
 
-  function movePlayer() {
-    if (keys["arrowleft"] || keys["a"]) player.dx = -player.speed;
-    else if (keys["arrowright"] || keys["d"]) player.dx = player.speed;
-    else player.dx = 0;
+const dashBar = document.getElementById("dashBar");
+const dashText = document.getElementById("dashText");
 
-    // 점프
-    if ((keys[" "] || keys["space"]) && player.isOnGround) {
-      player.dy = player.jumpPower;
-      player.isOnGround = false;
-    }
+function updateDashUI() {
+  const now = Date.now();
+  const timeSinceDash = now - lastDashTime;
+  if (timeSinceDash >= dashCooldown) {
+    dashBar.style.width = "100%";
+    dashText.innerText = "DASH READY";
+    dashReady = true;
+  } else {
+    const remaining = Math.ceil((dashCooldown - timeSinceDash) / 1000);
+    const percent = (timeSinceDash / dashCooldown) * 100;
+    dashBar.style.width = percent + "%";
+    dashText.innerText = `DASH (${remaining}s)`;
+    dashReady = false;
+  }
+}
 
-    // 대쉬
-    if (keys["f"] && player.canDash) {
-      doDash();
-    }
+function handleInput() {
+  player.moving = false;
+  if (keys["ArrowLeft"] || keys["a"]) {
+    player.vx = -player.speed;
+    player.moving = true;
+  } else if (keys["ArrowRight"] || keys["d"]) {
+    player.vx = player.speed;
+    player.moving = true;
+  } else {
+    player.vx = 0;
   }
 
-  function doDash() {
-    player.dashing = true;
-    player.canDash = false;
+  if ((keys["ArrowUp"] || keys["w"] || keys[" "]) && !player.jumping) {
+    player.vy = -12;
+    player.jumping = true;
+  }
+
+  if (keys["f"] && dashReady) {
+    player.vx *= 3; 
     lastDashTime = Date.now();
-    setTimeout(() => {
-      player.dashing = false;
-    }, 200);
   }
+}
 
-  function applyPhysics() {
-    player.dy += gravity;
-    player.x += player.dx * (player.dashing ? 3 : 1);
-    player.y += player.dy;
+function updatePlayer(deltaTime) {
+  handleInput();
 
-    // 바닥 충돌
-    if (player.y + player.height > canvas.height - groundHeight) {
-      player.y = canvas.height - groundHeight - player.height;
-      player.dy = 0;
-      player.isOnGround = true;
+  player.vy += gravity;
+  player.x += player.vx;
+  player.y += player.vy;
+
+  if (player.y + player.height > groundLevel) {
+    player.y = groundLevel - player.height;
+    player.vy = 0;
+    player.jumping = false;
+  }
+  
+  if (player.moving) {
+    animTimer += deltaTime;
+    if (animTimer > animSpeed) {
+      animTimer = 0;
+      animIndex = (animIndex + 1) % animOrder.length;
+      player.frame = animOrder[animIndex];
     }
-
-    // 블럭 충돌
-    blocks.forEach(block => {
-      if (
-        player.x < block.x + block.width &&
-        player.x + player.width > block.x &&
-        player.y < block.y + block.height &&
-        player.y + player.height > block.y
-      ) {
-        if (player.dy > 0 && player.y + player.height - player.dy <= block.y) {
-          player.y = block.y - player.height;
-          player.dy = 0;
-          player.isOnGround = true;
-        }
-      }
-    });
+  } else {
+    player.frame = 0;
+    animIndex = 0;
   }
+}
 
-  function drawGround() {
-    ctx.fillStyle = "green";
-    ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
-  }
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(frames[player.frame], player.x, player.y, player.width, player.height);
+}
 
-  function drawBlocks() {
-    ctx.fillStyle = "brown";
-    blocks.forEach(block => ctx.fillRect(block.x, block.y, block.width, block.height));
-  }
+let lastTime = 0;
+function gameLoop(timestamp) {
+  const deltaTime = timestamp - lastTime;
+  lastTime = timestamp;
 
-  function drawPlayer() {
-    ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-  }
+  updatePlayer(deltaTime);
+  updateDashUI();
+  draw();
 
-  function drawDashCooldown() {
-    const elapsed = Date.now() - lastDashTime;
-    const ratio = Math.min(elapsed / dashCooldown, 1);
+  requestAnimationFrame(gameLoop);
+}
 
-    ctx.fillStyle = "gray";
-    ctx.fillRect(20, canvas.height - 40, 200, 20);
+window.addEventListener("keydown", e => keys[e.key] = true);
+window.addEventListener("keyup", e => keys[e.key] = false);
 
-    ctx.fillStyle = "cyan";
-    ctx.fillRect(20, canvas.height - 40, 200 * ratio, 20);
-
-    // 텍스트 추가
-    ctx.fillStyle = "black";
-    ctx.font = "16px Arial";
-    ctx.fillText("DASH (F)", 30, canvas.height - 25);
-
-    if (ratio >= 1) {
-      player.canDash = true;
-    }
-  }
-
-  function update() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    movePlayer();
-    applyPhysics();
-
-    drawGround();
-    drawBlocks();
-    drawPlayer();
-    drawDashCooldown();
-
-    requestAnimationFrame(update);
-  }
-
-  playerImg.onload = () => {
-    update();
-  };
-
-  // 모바일 컨트롤 (터치 이벤트)
-  const btnLeft = document.getElementById("left");
-  const btnRight = document.getElementById("right");
-  const btnJump = document.getElementById("jump");
-  const btnDash = document.getElementById("dash");
-
-  btnLeft.addEventListener("touchstart", () => keys["a"] = true);
-  btnLeft.addEventListener("touchend", () => keys["a"] = false);
-  btnRight.addEventListener("touchstart", () => keys["d"] = true);
-  btnRight.addEventListener("touchend", () => keys["d"] = false);
-  btnJump.addEventListener("touchstart", () => {
-    if (player.isOnGround) {
-      player.dy = player.jumpPower;
-      player.isOnGround = false;
-    }
-  });
-  btnDash.addEventListener("touchstart", () => {
-    if (player.canDash) doDash();
-  });
+gameLoop();
 </script>
-</body>
-</html>
