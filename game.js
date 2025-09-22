@@ -65,7 +65,7 @@ document.getElementById("dashBtn").addEventListener("touchstart", () => {
 
 // 대쉬 함수
 function dash() {
-  player.dx = (keys["ArrowRight"] ? 6 : keys["ArrowLeft"] ? -6 : 0);
+  player.dx = (keys["ArrowRight"] ? 10 : keys["ArrowLeft"] ? -10 : 0);
   dashReady = false;
   dashTimer = dashCooldown;
 }
@@ -151,5 +151,6 @@ function gameLoop() {
 }
 
 gameLoop();
+
 
 
