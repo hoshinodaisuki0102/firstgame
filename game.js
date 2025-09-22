@@ -14,166 +14,143 @@ frames[1].src = "hoshino_move2.png";
 frames[2].src = "hoshino_move3.png";
 frames[3].src = "hoshino_move4.png";
 
-let keys = {};
-let gravity = 0.3;
-let speed = 2.5;
-let jumpPower = -7;
-let grounded = false;
-
-let dashReady = true;
-let dashCooldown = 5;
-let dashTimer = 0;
-let dashVelocity = 0;
-let dashDuration = 12; // 프레임 단위 (0.2초 정도)
-
-let doubleJumpReady = true;
-let doubleJumpCooldown = 15;
-let doubleJumpTimer = 0;
-let lastJumpTime = 0; // 마지막 점프 입력 시간
-
-const player = {
-  x: 100,
-  y: 300,
-  width: 48,
-  height: 48,
-  dx: 0,
-  dy: 0,
+// 플레이어
+let player = {
+  x: 200, y: 0,
+  width: 80, height: 80,
+  vx: 0, vy: 0,
+  speed: 2.5,       // 이동속도 ↓ (원래 4)
+  jumping: false,
+  canDoubleJump: true,
   frame: 0,
-  tick: 0,
   moving: false
 };
 
-// 캐릭터 이미지
-const moveFrames = [
-  "hoshino_move1.png",
-  "hoshino_move2.png",
-  "hoshino_move3.png",
-  "hoshino_move4.png"
-].map(src => {
-  const img = new Image();
-  img.src = src;
-  return img;
-});
-const idleImg = moveFrames[0];
+// 애니메이션
+const animOrder = [0, 1, 2, 0, 1, 3];
+let animIndex = 0, animTimer = 0;
+const animSpeed = 150;
 
-// 키 입력
-document.addEventListener("keydown", e => {
-  keys[e.code] = true;
+// 물리
+const gravity = 0.45; // ↓ 중력 낮춤 (체공 ↑)
+const groundLevel = canvas.height - 120;
+
+// 입력
+let keys = {};
+
+// 대쉬 쿨타임
+let dashCooldown = 10000, lastDashTime = -dashCooldown, dashReady = true;
+const dashBar = document.getElementById("dashBar");
+const dashText = document.getElementById("dashText");
+
+// 더블 점프 쿨타임
+let jumpCooldown = 15000, lastJumpTime = -jumpCooldown, jumpReady = true;
+const jumpBar = document.getElementById("jumpBar");
+const jumpText = document.getElementById("jumpText");
+
+function updateCooldown(bar, text, lastTime, cooldown, label) {
+  const now = Date.now();
+  const elapsed = now - lastTime;
+  if (elapsed >= cooldown) {
+    bar.style.width = "100%";
+    text.innerText = `${label} READY`;
+    return true;
+  } else {
+    const remaining = Math.ceil((cooldown - elapsed) / 1000);
+    const percent = (elapsed / cooldown) * 100;
+    bar.style.width = percent + "%";
+    text.innerText = `${label} (${remaining}s)`;
+    return false;
+  }
+}
+
+function handleInput() {
+  player.moving = false;
+
+  if (keys["ArrowLeft"] || keys["a"]) {
+    player.vx = -player.speed;
+    player.moving = true;
+  } else if (keys["ArrowRight"] || keys["d"]) {
+    player.vx = player.speed;
+    player.moving = true;
+  } else {
+    player.vx = 0;
+  }
+
+  // 점프
+  if ((keys["ArrowUp"] || keys["w"] || keys[" "]) && !player.jumping) {
+    player.vy = -12;
+    player.jumping = true;
+    player.canDoubleJump = true;
+  }
+
+  // 더블 점프
+  if ((keys["ArrowUp"] || keys["w"] || keys[" "]) && player.jumping && player.canDoubleJump && jumpReady) {
+    player.vy = -12;
+    player.canDoubleJump = false;
+    lastJumpTime = Date.now();
+  }
 
   // 대쉬
-  if (e.code === "KeyF" && dashReady) dash();
-
-  // 점프 입력
-  if (e.code === "Space" || e.code === "KeyW") {
-    handleJump();
-  }
-});
-document.addEventListener("keyup", e => keys[e.code] = false);
-
-// 모바일 버튼 (대쉬만 그대로 둠)
-document.getElementById("leftBtn").addEventListener("touchstart", () => keys["ArrowLeft"] = true);
-document.getElementById("leftBtn").addEventListener("touchend", () => keys["ArrowLeft"] = false);
-document.getElementById("rightBtn").addEventListener("touchstart", () => keys["ArrowRight"] = true);
-document.getElementById("rightBtn").addEventListener("touchend", () => keys["ArrowRight"] = false);
-document.getElementById("jumpBtn").addEventListener("touchstart", () => handleJump());
-document.getElementById("dashBtn").addEventListener("touchstart", () => {
-  if (dashReady) dash();
-});
-
-// 대쉬 함수
-function dash() {
-  if (keys["ArrowRight"]) dashVelocity = 8;
-  else if (keys["ArrowLeft"]) dashVelocity = -8;
-  else dashVelocity = (player.frame % 2 === 0 ? 6 : -6); // 정지시 임시 방향
-
-  dashDuration = 12; // 0.2초 정도
-  dashReady = false;
-  dashTimer = dashCooldown;
-}
-
-// 점프 & 더블점프
-function handleJump() {
-  const now = performance.now();
-
-  if (grounded) {
-    // 일반 점프
-    player.dy = jumpPower;
-    grounded = false;
-    lastJumpTime = now;
-  } else if (doubleJumpReady && now - lastJumpTime < 1000) {
-    // 1초 안에 두 번째 입력이면 더블점프
-    player.dy = jumpPower * 1.2;
-    doubleJumpReady = false;
-    doubleJumpTimer = doubleJumpCooldown;
+  if (keys["f"] && dashReady) {
+    player.vx *= 3;
+    lastDashTime = Date.now();
   }
 }
 
-// UI 업데이트
-function updateCooldownUI() {
-  const dashBar = document.getElementById("dashCooldown");
-  const dashText = document.getElementById("dashText");
-  dashBar.style.width = (dashReady ? "100%" : `${(dashTimer / dashCooldown) * 100}%`);
-  dashText.textContent = `DASH (F) ${dashReady ? "0s" : dashTimer.toFixed(1) + "s"}`;
+function updatePlayer(deltaTime) {
+  handleInput();
 
-  const jumpBar = document.getElementById("doubleJumpCooldown");
-  const jumpText = document.getElementById("jumpText");
-  jumpBar.style.width = (doubleJumpReady ? "100%" : `${(doubleJumpTimer / doubleJumpCooldown) * 100}%`);
-  jumpText.textContent = `DOUBLE JUMP (SPACE/W) ${doubleJumpReady ? "0s" : doubleJumpTimer.toFixed(1) + "s"}`;
-}
+  // 중력
+  player.vy += gravity;
+  player.x += player.vx;
+  player.y += player.vy;
 
-// 메인 루프
-function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // 이동
-  player.dx = 0;
-  player.moving = false;
-  if (keys["ArrowLeft"]) { player.dx = -speed; player.moving = true; }
-  if (keys["ArrowRight"]) { player.dx = speed; player.moving = true; }
-
-  // 대쉬 적용
-  if (dashDuration > 0) {
-    player.x += dashVelocity;
-    dashDuration--;
-  }
-
-  // 물리
-  player.dy += gravity;
-  player.x += player.dx;
-  player.y += player.dy;
-
-  // 땅 충돌
-  if (player.y + player.height >= canvas.height - 20) {
-    player.y = canvas.height - 20 - player.height;
-    player.dy = 0;
-    grounded = true;
+  // 바닥 충돌
+  if (player.y + player.height > groundLevel) {
+    player.y = groundLevel - player.height;
+    player.vy = 0;
+    player.jumping = false;
   }
 
   // 애니메이션
   if (player.moving) {
-    player.tick++;
-    if (player.tick > 8) {
-      player.frame = (player.frame + 1) % 4;
-      player.tick = 0;
+    animTimer += deltaTime;
+    if (animTimer > animSpeed) {
+      animTimer = 0;
+      animIndex = (animIndex + 1) % animOrder.length;
+      player.frame = animOrder[animIndex];
     }
-    ctx.drawImage(moveFrames[player.frame], player.x, player.y, player.width, player.height);
   } else {
-    ctx.drawImage(idleImg, player.x, player.y, player.width, player.height);
+    player.frame = 0;
+    animIndex = 0;
   }
+}
 
-  // 쿨타임 감소
-  if (!dashReady) {
-    dashTimer -= 0.016;
-    if (dashTimer <= 0) dashReady = true;
-  }
-  if (!doubleJumpReady) {
-    doubleJumpTimer -= 0.016;
-    if (doubleJumpTimer <= 0) doubleJumpReady = true;
-  }
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(frames[player.frame], player.x, player.y, player.width, player.height);
+}
 
-  updateCooldownUI();
+let lastTime = 0;
+function gameLoop(timestamp) {
+  const deltaTime = timestamp - lastTime;
+  lastTime = timestamp;
+
+  updatePlayer(deltaTime);
+
+  // UI 업데이트
+  dashReady = updateCooldown(dashBar, dashText, lastDashTime, dashCooldown, "DASH");
+  jumpReady = updateCooldown(jumpBar, jumpText, lastJumpTime, jumpCooldown, "DOUBLE JUMP");
+
+  draw();
   requestAnimationFrame(gameLoop);
 }
+
+// 입력
+window.addEventListener("keydown", e => keys[e.key] = true);
+window.addEventListener("keyup", e => keys[e.key] = false);
 
 gameLoop();
 
