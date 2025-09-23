@@ -5,15 +5,15 @@ canvas.width = 800;
 canvas.height = 450;
 
 let keys = {};
-let gravity = 0.3;       // 중력 조금 줄임
-let speed = 2.5;         // 이동속도 감소
-let jumpPower = -7;      // 점프 높이는 그대로
+let gravity = 0.3;
+let speed = 2.5;
+let jumpPower = -7;
 let grounded = false;
 let canDoubleJump = true;
 let doubleJumpReady = true;
 let dashReady = true;
 
-let dashCooldown = 5;     // 초
+let dashCooldown = 5;
 let doubleJumpCooldown = 15;
 
 let dashTimer = 0;
@@ -31,16 +31,27 @@ const player = {
   moving: false
 };
 
-// 캐릭터 이미지
-const moveFrames = [
+// 이미지 로딩
+const moveFrameSources = [
   "hoshino_move1.png",
   "hoshino_move2.png",
   "hoshino_move3.png",
   "hoshino_move4.png"
-].map(src => {
+];
+
+const moveFrames = [];
+let imagesLoaded = 0;
+
+moveFrameSources.forEach(src => {
   const img = new Image();
   img.src = src;
-  return img;
+  img.onload = () => {
+    imagesLoaded++;
+    if (imagesLoaded === moveFrameSources.length) {
+      gameLoop(); // 모든 이미지가 로드된 후 게임 시작
+    }
+  };
+  moveFrames.push(img);
 });
 
 const idleImg = moveFrames[0];
@@ -52,16 +63,29 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("keyup", e => keys[e.code] = false);
 
-// 모바일 버튼
-document.getElementById("leftBtn").addEventListener("touchstart", () => keys["ArrowLeft"] = true);
-document.getElementById("leftBtn").addEventListener("touchend", () => keys["ArrowLeft"] = false);
-document.getElementById("rightBtn").addEventListener("touchstart", () => keys["ArrowRight"] = true);
-document.getElementById("rightBtn").addEventListener("touchend", () => keys["ArrowRight"] = false);
-document.getElementById("jumpBtn").addEventListener("touchstart", () => keys["Space"] = true);
-document.getElementById("jumpBtn").addEventListener("touchend", () => keys["Space"] = false);
-document.getElementById("dashBtn").addEventListener("touchstart", () => {
-  if (dashReady) dash();
-});
+// 모바일 버튼 (존재할 경우에만 이벤트 바인딩)
+const leftBtn = document.getElementById("leftBtn");
+const rightBtn = document.getElementById("rightBtn");
+const jumpBtn = document.getElementById("jumpBtn");
+const dashBtn = document.getElementById("dashBtn");
+
+if (leftBtn) {
+  leftBtn.addEventListener("touchstart", () => keys["ArrowLeft"] = true);
+  leftBtn.addEventListener("touchend", () => keys["ArrowLeft"] = false);
+}
+if (rightBtn) {
+  rightBtn.addEventListener("touchstart", () => keys["ArrowRight"] = true);
+  rightBtn.addEventListener("touchend", () => keys["ArrowRight"] = false);
+}
+if (jumpBtn) {
+  jumpBtn.addEventListener("touchstart", () => keys["Space"] = true);
+  jumpBtn.addEventListener("touchend", () => keys["Space"] = false);
+}
+if (dashBtn) {
+  dashBtn.addEventListener("touchstart", () => {
+    if (dashReady) dash();
+  });
+}
 
 // 대쉬 함수
 function dash() {
@@ -70,7 +94,7 @@ function dash() {
   dashTimer = dashCooldown;
 }
 
-// 점프 함수 (홀드 발동)
+// 점프 처리
 function handleJump() {
   if (keys["Space"]) {
     if (grounded) {
@@ -88,15 +112,19 @@ function handleJump() {
 
 // UI 업데이트
 function updateCooldownUI() {
-  const dashBar = document.getElementById("dashCooldown");
+  const dashBar = document.getElementById("dashBar");
   const dashText = document.getElementById("dashText");
-  dashBar.style.width = (dashReady ? "100%" : `${(dashTimer / dashCooldown) * 100}%`);
-  dashText.textContent = `DASH (F) ${dashReady ? "0s" : dashTimer.toFixed(1) + "s"}`;
+  if (dashBar && dashText) {
+    dashBar.style.width = (dashReady ? "100%" : `${(dashTimer / dashCooldown) * 100}%`);
+    dashText.textContent = dashReady ? "DASH READY" : `DASH (${dashTimer.toFixed(1)}s)`;
+  }
 
-  const jumpBar = document.getElementById("doubleJumpCooldown");
+  const jumpBar = document.getElementById("jumpBar");
   const jumpText = document.getElementById("jumpText");
-  jumpBar.style.width = (doubleJumpReady ? "100%" : `${(doubleJumpTimer / doubleJumpCooldown) * 100}%`);
-  jumpText.textContent = `DOUBLE JUMP (SPACE) ${doubleJumpReady ? "0s" : doubleJumpTimer.toFixed(1) + "s"}`;
+  if (jumpBar && jumpText) {
+    jumpBar.style.width = (doubleJumpReady ? "100%" : `${(doubleJumpTimer / doubleJumpCooldown) * 100}%`);
+    jumpText.textContent = doubleJumpReady ? "DOUBLE JUMP READY" : `DOUBLE JUMP (${doubleJumpTimer.toFixed(1)}s)`;
+  }
 }
 
 // 메인 루프
@@ -128,7 +156,7 @@ function gameLoop() {
   if (player.moving) {
     player.tick++;
     if (player.tick > 8) {
-      player.frame = (player.frame + 1) % 4;
+      player.frame = (player.frame + 1) % moveFrames.length;
       player.tick = 0;
     }
     ctx.drawImage(moveFrames[player.frame], player.x, player.y, player.width, player.height);
@@ -150,4 +178,3 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
-gameLoop();
