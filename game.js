@@ -64,11 +64,24 @@ moveFrameSources.forEach(src => {
 
 const idleImg = moveFrames[0];
 
+// 입력 처리
 document.addEventListener("keydown", e => {
   keys[e.code] = true;
-  if (e.code === "KeyF" && dashReady) dash();
+
+  // 점프 (Space, W)
+  if ((e.code === "Space" || e.code === "KeyW")) {
+    jump();
+  }
+
+  // 대시 (F, ShiftLeft, ShiftRight)
+  if ((e.code === "KeyF" || e.code === "ShiftLeft" || e.code === "ShiftRight") && dashReady) {
+    dash();
+  }
 });
-document.addEventListener("keyup", e => keys[e.code] = false);
+
+document.addEventListener("keyup", e => {
+  keys[e.code] = false;
+});
 
 // 모바일 버튼 연결
 const leftBtn = document.getElementById("leftBtn");
@@ -77,16 +90,15 @@ const jumpBtn = document.getElementById("jumpBtn");
 const dashBtn = document.getElementById("dashBtn");
 
 if (leftBtn) {
-  leftBtn.addEventListener("touchstart", () => keys["ArrowLeft"] = true);
-  leftBtn.addEventListener("touchend", () => keys["ArrowLeft"] = false);
+  leftBtn.addEventListener("touchstart", () => keys["ArrowLeft"] = keys["KeyA"] = true);
+  leftBtn.addEventListener("touchend", () => { keys["ArrowLeft"] = false; keys["KeyA"] = false; });
 }
 if (rightBtn) {
-  rightBtn.addEventListener("touchstart", () => keys["ArrowRight"] = true);
-  rightBtn.addEventListener("touchend", () => keys["ArrowRight"] = false);
+  rightBtn.addEventListener("touchstart", () => keys["ArrowRight"] = keys["KeyD"] = true);
+  rightBtn.addEventListener("touchend", () => { keys["ArrowRight"] = false; keys["KeyD"] = false; });
 }
 if (jumpBtn) {
-  jumpBtn.addEventListener("touchstart", () => keys["Space"] = true);
-  jumpBtn.addEventListener("touchend", () => keys["Space"] = false);
+  jumpBtn.addEventListener("touchstart", () => jump());
 }
 if (dashBtn) {
   dashBtn.addEventListener("touchstart", () => {
@@ -94,27 +106,28 @@ if (dashBtn) {
   });
 }
 
+// 대시
 function dash() {
-  player.dx = (keys["ArrowRight"] ? 6 : keys["ArrowLeft"] ? -6 : 0);
+  player.dx = (keys["ArrowRight"] || keys["KeyD"]) ? 8 : (keys["ArrowLeft"] || keys["KeyA"]) ? -8 : 0;
   dashReady = false;
   dashTimer = dashCooldown;
 }
 
-function handleJump() {
-  if (keys["Space"]) {
-    if (grounded) {
-      player.dy = jumpPower;
-      grounded = false;
-      canDoubleJump = true;
-    } else if (canDoubleJump && doubleJumpReady) {
-      player.dy = jumpPower * 1.2;
-      canDoubleJump = false;
-      doubleJumpReady = false;
-      doubleJumpTimer = doubleJumpCooldown;
-    }
+// 점프
+function jump() {
+  if (grounded) {
+    player.dy = jumpPower;
+    grounded = false;
+    canDoubleJump = true;
+  } else if (canDoubleJump && doubleJumpReady) {
+    player.dy = jumpPower * 1.2;
+    canDoubleJump = false;
+    doubleJumpReady = false;
+    doubleJumpTimer = doubleJumpCooldown;
   }
 }
 
+// UI 업데이트
 function updateCooldownUI() {
   const dashBar = document.getElementById("dashBar");
   const dashText = document.getElementById("dashText");
@@ -131,29 +144,30 @@ function updateCooldownUI() {
   }
 }
 
+// 게임 루프
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 배경 그리기 (화면 전체에 맞춤)
+  // 배경 그리기
   ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
   player.dx = 0;
   player.moving = false;
-  if (keys["ArrowLeft"]) { player.dx = -speed; player.moving = true; }
-  if (keys["ArrowRight"]) { player.dx = speed; player.moving = true; }
-
-  handleJump();
+  if (keys["ArrowLeft"] || keys["KeyA"]) { player.dx = -speed; player.moving = true; }
+  if (keys["ArrowRight"] || keys["KeyD"]) { player.dx = speed; player.moving = true; }
 
   player.dy += gravity;
   player.x += player.dx;
   player.y += player.dy;
 
+  // 땅 충돌
   if (player.y + player.height >= canvas.height - 20) {
     player.y = canvas.height - 20 - player.height;
     player.dy = 0;
     grounded = true;
   }
 
+  // 애니메이션
   if (player.moving) {
     player.tick++;
     if (player.tick > 8) {
@@ -165,6 +179,7 @@ function gameLoop() {
     ctx.drawImage(idleImg, player.x, player.y, player.width, player.height);
   }
 
+  // 쿨타임
   if (!dashReady) {
     dashTimer -= 0.016;
     if (dashTimer <= 0) dashReady = true;
