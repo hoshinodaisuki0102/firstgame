@@ -1,8 +1,17 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-canvas.width = 800;
-canvas.height = 450;
+// 화면 크기에 맞게 캔버스 조정
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+// 배경 이미지
+const bgImg = new Image();
+bgImg.src = "abydos.jpg";
 
 let keys = {};
 let gravity = 0.3;
@@ -61,6 +70,7 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("keyup", e => keys[e.code] = false);
 
+// 모바일 버튼 연결
 const leftBtn = document.getElementById("leftBtn");
 const rightBtn = document.getElementById("rightBtn");
 const jumpBtn = document.getElementById("jumpBtn");
@@ -124,6 +134,9 @@ function updateCooldownUI() {
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // 배경 그리기 (화면 전체에 맞춤)
+  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
   player.dx = 0;
   player.moving = false;
   if (keys["ArrowLeft"]) { player.dx = -speed; player.moving = true; }
@@ -164,5 +177,3 @@ function gameLoop() {
   updateCooldownUI();
   requestAnimationFrame(gameLoop);
 }
-
-
