@@ -31,7 +31,6 @@ const player = {
   moving: false
 };
 
-// 이미지 로딩
 const moveFrameSources = [
   "hoshino_move1.png",
   "hoshino_move2.png",
@@ -48,7 +47,7 @@ moveFrameSources.forEach(src => {
   img.onload = () => {
     imagesLoaded++;
     if (imagesLoaded === moveFrameSources.length) {
-      gameLoop(); // 모든 이미지가 로드된 후 게임 시작
+      gameLoop();
     }
   };
   moveFrames.push(img);
@@ -56,14 +55,12 @@ moveFrameSources.forEach(src => {
 
 const idleImg = moveFrames[0];
 
-// 키 입력
 document.addEventListener("keydown", e => {
   keys[e.code] = true;
   if (e.code === "KeyF" && dashReady) dash();
 });
 document.addEventListener("keyup", e => keys[e.code] = false);
 
-// 모바일 버튼 (존재할 경우에만 이벤트 바인딩)
 const leftBtn = document.getElementById("leftBtn");
 const rightBtn = document.getElementById("rightBtn");
 const jumpBtn = document.getElementById("jumpBtn");
@@ -87,14 +84,12 @@ if (dashBtn) {
   });
 }
 
-// 대쉬 함수
 function dash() {
   player.dx = (keys["ArrowRight"] ? 6 : keys["ArrowLeft"] ? -6 : 0);
   dashReady = false;
   dashTimer = dashCooldown;
 }
 
-// 점프 처리
 function handleJump() {
   if (keys["Space"]) {
     if (grounded) {
@@ -110,7 +105,6 @@ function handleJump() {
   }
 }
 
-// UI 업데이트
 function updateCooldownUI() {
   const dashBar = document.getElementById("dashBar");
   const dashText = document.getElementById("dashText");
@@ -127,32 +121,26 @@ function updateCooldownUI() {
   }
 }
 
-// 메인 루프
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 이동
   player.dx = 0;
   player.moving = false;
   if (keys["ArrowLeft"]) { player.dx = -speed; player.moving = true; }
   if (keys["ArrowRight"]) { player.dx = speed; player.moving = true; }
 
-  // 점프 처리
   handleJump();
 
-  // 물리
   player.dy += gravity;
   player.x += player.dx;
   player.y += player.dy;
 
-  // 땅 충돌
   if (player.y + player.height >= canvas.height - 20) {
     player.y = canvas.height - 20 - player.height;
     player.dy = 0;
     grounded = true;
   }
 
-  // 애니메이션
   if (player.moving) {
     player.tick++;
     if (player.tick > 8) {
@@ -164,7 +152,6 @@ function gameLoop() {
     ctx.drawImage(idleImg, player.x, player.y, player.width, player.height);
   }
 
-  // 쿨타임 감소
   if (!dashReady) {
     dashTimer -= 0.016;
     if (dashTimer <= 0) dashReady = true;
@@ -177,4 +164,5 @@ function gameLoop() {
   updateCooldownUI();
   requestAnimationFrame(gameLoop);
 }
+
 
