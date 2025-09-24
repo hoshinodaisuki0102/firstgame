@@ -23,7 +23,7 @@ let doubleJumpReady = true;
 let dashReady = true;
 
 let dashCooldown = 5;
-let doubleJumpCooldown = 15;
+let doubleJumpCooldown = 10;
 
 let dashTimer = 0;
 let doubleJumpTimer = 0;
@@ -192,3 +192,4 @@ function gameLoop() {
   updateCooldownUI();
   requestAnimationFrame(gameLoop);
 }
+
